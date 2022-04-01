@@ -8,14 +8,23 @@
 #include <arpa/inet.h>
 #include <netinet/in.h>
 #include <json-c/json.h>
+#include <time.h> 
+#include <ifaddrs.h>
+#include <sys/ioctl.h>
+#include <net/if.h>
+#include <stdbool.h>
    
 #define PORT     8080
 #define MAXLINE 1024
    
-int main() {
+int main(int argc, char *argv[]) {
     int sockfd;
     char buffer[MAXLINE];
-    char *hello;
+    char buffer2[MAXLINE];
+    char *message;
+    time_t ticks;
+    bool ack = false;
+
     struct sockaddr_in servaddr, cliaddr;
        
     //Criando arquivo que descreve a socket
@@ -55,11 +64,27 @@ int main() {
     buffer[n] = '\0';
     printf("Client : %s\n", buffer);
 
-    hello = (char *) malloc(sizeof(char)*50);
-    scanf("%s",hello);
+    message = (char *) malloc(sizeof(char)*50);
+    scanf("%s",message);
     getchar();
 
-    sendto(sockfd, (const char *)hello, strlen(hello), 
+    struct ifaddrs *ifap, *ifa;
+    struct sockaddr_in *sa;
+    char *addr;
+
+    getifaddrs (&ifap);
+    for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr && ifa->ifa_addr->sa_family==AF_INET) {
+            sa = (struct sockaddr_in *) ifa->ifa_addr;
+            addr = inet_ntoa(sa->sin_addr);
+        } 
+    }
+
+    freeifaddrs(ifap);
+
+    snprintf(buffer2, sizeof(buffer2), "{ \"Ip_origem\":  %s \"Ip_destino\": %s \"Porta_origem\": %d  \"Porta_destino\": %d \"Timestamp da mensagem original\": %.24s \"Timestamp da mensagem de resposta\": %.24s \"ACK\": %d }", addr, argv[1], PORT, PORT, ctime(&ticks), ctime(&ticks), ack);
+
+    sendto(sockfd, (const char *)buffer2, strlen(buffer2), 
         MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
             len);
     printf("Hello message sent.\n"); 
