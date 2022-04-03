@@ -89,39 +89,40 @@ int main(int argc, char *argv[]) {
 
     freeifaddrs(ifap);
 
+    // Prepara o json com a mensagem
     snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\": \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %d, \n\t\"Timestamp da mensagem\": \"%.24s\", \t\"Mensagem\": \"%s\" \n}", addr, argv[1], PORT, PORT, ctime(&ticks), message);
 
-    char **palavras = (char**) malloc(sizeof(char*)*6);
-    for(int i = 0; i<6; i++){
-        palavras[i] = (char*) malloc(sizeof(char)*50);
-    }
+    // char **palavras = (char**) malloc(sizeof(char*)*6);
+    // for(int i = 0; i<6; i++){
+    //     palavras[i] = (char*) malloc(sizeof(char)*50);
+    // }
 
-    char *palavra = (char*) malloc(sizeof(char)*50);
+    // char *palavra = (char*) malloc(sizeof(char)*50);
 
-    int j = 0, qtdPalavras = 0;
-    for(int i = 0; i<strlen(buffer2); i++){
-        if(buffer2[i] == ':'){
-            i+=2;
-            if(buffer2[i] == '"'){
-                i++;
-                while(buffer2[i] != '"'){
-                    palavra [j] = buffer2[i];
-                    j++;
-                    i++;
-                }
-            }else{
-                while(!(buffer2[i] != ',' ^ buffer2[i] != '\n')){
-                    palavra[j] = buffer2[i];
-                    j++;
-                    i++;
-                }
-            }
-            palavra[j] = '\0';
-            strcpy(palavras[qtdPalavras] ,palavra);
-            j = 0;
-            qtdPalavras++;
-        }
-    }
+    // int j = 0, qtdPalavras = 0;
+    // for(int i = 0; i<strlen(buffer2); i++){
+    //     if(buffer2[i] == ':'){
+    //         i+=2;
+    //         if(buffer2[i] == '"'){
+    //             i++;
+    //             while(buffer2[i] != '"'){
+    //                 palavra [j] = buffer2[i];
+    //                 j++;
+    //                 i++;
+    //             }
+    //         }else{
+    //             while(!(buffer2[i] != ',' ^ buffer2[i] != '\n')){
+    //                 palavra[j] = buffer2[i];
+    //                 j++;
+    //                 i++;
+    //             }
+    //         }
+    //         palavra[j] = '\0';
+    //         strcpy(palavras[qtdPalavras] ,palavra);
+    //         j = 0;
+    //         qtdPalavras++;
+    //     }
+    // }
 
     // for(int i = 0; i<6; i++){
     //     puts(palavras[i]);
@@ -134,10 +135,12 @@ int main(int argc, char *argv[]) {
     args.len = &len;
     args.servaddr = &servaddr;
 
+    // Comeca a escutar -> onde ele recebe o json com a confirmacao que o servidor recebeu a mensagem
     pthread_create(&acknowledgement, NULL, (void*) waitAck, &args);
 
     while (!msgRecieved)
     {
+        // Envia o json com a mensagem
         sendto(sockfd, (const char *)buffer2, strlen(buffer2),
             MSG_CONFIRM, (const struct sockaddr *) &servaddr, 
             sizeof(servaddr));
@@ -146,6 +149,7 @@ int main(int argc, char *argv[]) {
     pthread_join(acknowledgement, NULL);
     //waitAck(sockfd, &len, &servaddr)
 
+    // Recebe o json com a resposta
     n = recvfrom(sockfd, (char *)buffer, MAXLINE, 
                 MSG_WAITALL, (struct sockaddr *) &servaddr,
                 &len);
@@ -157,11 +161,11 @@ int main(int argc, char *argv[]) {
 
     close(sockfd);
 
-    free(palavra);
-    for(int i = 0; i<6; i++){
-        free(palavras[i]);
-    }
-    free(palavras);
+    // free(palavra);
+    // for(int i = 0; i<6; i++){
+    //     free(palavras[i]);
+    // }
+    // free(palavras);
 
     return 0;
 }

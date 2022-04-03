@@ -62,13 +62,15 @@ int main(int argc, char *argv[]) {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
-
+    // Recebe o json com a mensagem
     n = recvfrom(sockfd, (char *)buffer, MAXLINE, 
             MSG_WAITALL, ( struct sockaddr *) &cliaddr,
             &len);
     buffer[n] = '\0';
     printf("Client : %s\n", buffer);
     ack = true;
+
+    // Desmonta o json 
     char **palavras = (char**) malloc(sizeof(char*)*6);
     for(int i = 0; i<6; i++){
         palavras[i] = (char*) malloc(sizeof(char)*50);
@@ -105,12 +107,14 @@ int main(int argc, char *argv[]) {
     //     puts(palavras[i]);
     // }
 
+    // Envia o json de recebimento
     snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\": \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %s, \n\t\"Timestamp da mensagem original\": \"%s\", \n\t\"Timestamp da mensagem de resposta\": \"%.24s\", \n\t\"ACK\": %d \n}", addr, palavras[1], PORT, palavras[2], palavras[4], ctime(&ticks), ack);
 
     sendto(sockfd, (const char *)buffer2, strlen(buffer2), 
         MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
             len);
 
+    // Envia o json com a resposta
     message = (char *) malloc(sizeof(char)*50);
     scanf("%s",message);
     getchar();
