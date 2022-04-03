@@ -20,7 +20,7 @@ int main(int argc, char *argv[]) {
     int sockfd, len, n;
     char buffer[MAXLINE], buffer2[MAXLINE],  *message, *addr;
     time_t ticks;
-    bool ack = false;
+    char ack[10] = "false";
     struct sockaddr_in servaddr, cliaddr, *sa;
     struct ifaddrs *ifap, *ifa;
 
@@ -67,8 +67,8 @@ int main(int argc, char *argv[]) {
             MSG_WAITALL, ( struct sockaddr *) &cliaddr,
             &len);
     buffer[n] = '\0';
-    printf("Client : %s\n", buffer);
-    ack = true;
+    if (strlen(buffer) > 1) strcpy(ack,"true");
+    //printf("Client : %s\n", buffer);
 
     // Desmonta o json 
     char **palavras = (char**) malloc(sizeof(char*)*6);
@@ -103,12 +103,14 @@ int main(int argc, char *argv[]) {
         }
     }
 
+    printf("[%s] Client: %s\n", palavras[4], palavras[5]);
+
     // for(int i = 0; i<6; i++){
     //     puts(palavras[i]);
     // }
 
     // Envia o json de recebimento
-    snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\": \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %s, \n\t\"Timestamp da mensagem original\": \"%s\", \n\t\"Timestamp da mensagem de resposta\": \"%.24s\", \n\t\"ACK\": %d \n}", addr, palavras[1], PORT, palavras[2], palavras[4], ctime(&ticks), ack);
+    snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\": \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %s, \n\t\"Timestamp da mensagem original\": \"%s\", \n\t\"Timestamp da mensagem de resposta\": \"%.24s\", \n\t\"ACK\": %s \n}", addr, palavras[1], PORT, palavras[2], palavras[4], ctime(&ticks), ack);
 
     sendto(sockfd, (const char *)buffer2, strlen(buffer2), 
         MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
@@ -124,8 +126,7 @@ int main(int argc, char *argv[]) {
     sendto(sockfd, (const char *)buffer2, strlen(buffer2), 
         MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
             len);
-    printf("Hello message sent.\n"); 
-       
+    printf("Mensagem enviada.\n");   
     free(palavra);
     for(int i = 0; i<6; i++){
         free(palavras[i]);

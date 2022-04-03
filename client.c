@@ -33,8 +33,41 @@ void waitAck(void *arguments){
                 args->len);
     buffer[n] = '\0';
     
-    msgRecieved = true;
-    printf("Server : %s\n", buffer);
+    char **palavras = (char**) malloc(sizeof(char*)*7);
+    for(int i = 0; i<7; i++){
+        palavras[i] = (char*) malloc(sizeof(char)*50);
+    }
+
+    char *palavra = (char*) malloc(sizeof(char)*50);
+
+    int j = 0, qtdPalavras = 0;
+    for(int i = 0; i<strlen(buffer); i++){
+        if(buffer[i] == ':'){
+            i+=2;
+            if(buffer[i] == '"'){
+                i++;
+                while(buffer[i] != '"'){
+                    palavra [j] = buffer[i];
+                    j++;
+                    i++;
+                }
+            }else{
+                while(!(buffer[i] != ',' ^ buffer[i] != '\n')){
+                    palavra[j] = buffer[i];
+                    j++;
+                    i++;
+                }
+            }
+            palavra[j] = '\0';
+            strcpy(palavras[qtdPalavras] ,palavra);
+            j = 0;
+            qtdPalavras++;
+        }
+    }
+    if (strcmp(palavras[6], "true ") == 0){
+        msgRecieved = true;
+    }
+    // printf("Server : %s\n", buffer);
 }
 
 // Driver code
@@ -92,43 +125,11 @@ int main(int argc, char *argv[]) {
     // Prepara o json com a mensagem
     snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\": \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %d, \n\t\"Timestamp da mensagem\": \"%.24s\", \t\"Mensagem\": \"%s\" \n}", addr, argv[1], PORT, PORT, ctime(&ticks), message);
 
-    // char **palavras = (char**) malloc(sizeof(char*)*6);
-    // for(int i = 0; i<6; i++){
-    //     palavras[i] = (char*) malloc(sizeof(char)*50);
-    // }
-
-    // char *palavra = (char*) malloc(sizeof(char)*50);
-
-    // int j = 0, qtdPalavras = 0;
-    // for(int i = 0; i<strlen(buffer2); i++){
-    //     if(buffer2[i] == ':'){
-    //         i+=2;
-    //         if(buffer2[i] == '"'){
-    //             i++;
-    //             while(buffer2[i] != '"'){
-    //                 palavra [j] = buffer2[i];
-    //                 j++;
-    //                 i++;
-    //             }
-    //         }else{
-    //             while(!(buffer2[i] != ',' ^ buffer2[i] != '\n')){
-    //                 palavra[j] = buffer2[i];
-    //                 j++;
-    //                 i++;
-    //             }
-    //         }
-    //         palavra[j] = '\0';
-    //         strcpy(palavras[qtdPalavras] ,palavra);
-    //         j = 0;
-    //         qtdPalavras++;
-    //     }
-    // }
-
     // for(int i = 0; i<6; i++){
     //     puts(palavras[i]);
     // }
 
-    printf("Message sent.\n");
+    printf("Mensagem enviada.\n");
 
     struct thread_args args;
     args.sockfd = sockfd;
@@ -157,15 +158,48 @@ int main(int argc, char *argv[]) {
     buffer[n] = '\0';
     
     msgRecieved = true;
-    printf("Server : %s\n", buffer);
+
+    char **palavras = (char**) malloc(sizeof(char*)*8);
+    for(int i = 0; i<8; i++){
+        palavras[i] = (char*) malloc(sizeof(char)*50);
+    }
+    char *palavra = (char*) malloc(sizeof(char)*50);
+
+    int j = 0, qtdPalavras = 0;
+    for(int i = 0; i<strlen(buffer); i++){
+        if(buffer[i] == ':'){
+            i+=2;
+            if(buffer[i] == '"'){
+                i++;
+                while(buffer[i] != '"'){
+                    palavra [j] = buffer[i];
+                    j++;
+                    i++;
+                }
+            }else{
+                while(!(buffer[i] != ',' ^ buffer[i] != '\n')){
+                    palavra[j] = buffer[i];
+                    j++;
+                    i++;
+                }
+            }
+            palavra[j] = '\0';
+            strcpy(palavras[qtdPalavras] ,palavra);
+            j = 0;
+            qtdPalavras++;
+        }
+    }
+
+    //printf("Server : %s\n", buffer);
+    printf("[%s] Server: %s\n", palavras[5] ,palavras[7]);
 
     close(sockfd);
 
-    // free(palavra);
-    // for(int i = 0; i<6; i++){
-    //     free(palavras[i]);
-    // }
-    // free(palavras);
+    free(palavra);
+    for(int i = 0; i<6; i++){
+        free(palavras[i]);
+    }
+    free(palavras);
 
     return 0;
 }
