@@ -7,7 +7,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <json-c/json.h>
 #include <time.h> 
 #include <ifaddrs.h>
 #include <sys/ioctl.h>
@@ -18,14 +17,24 @@
 #define MAXLINE 1024
    
 int main(int argc, char *argv[]) {
-    int sockfd;
-    char buffer[MAXLINE];
-    char buffer2[MAXLINE];
-    char *message;
+    int sockfd, len, n;
+    char buffer[MAXLINE], buffer2[MAXLINE],  *message, *addr;
     time_t ticks;
-    bool ack = false;
+    char ack[10] = "false";
+    struct sockaddr_in servaddr, cliaddr, *sa;
+    struct ifaddrs *ifap, *ifa;
 
-    struct sockaddr_in servaddr, cliaddr;
+    getifaddrs (&ifap);
+    for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr && ifa->ifa_addr->sa_family==AF_INET) {
+            sa = (struct sockaddr_in *) ifa->ifa_addr;
+            addr = inet_ntoa(sa->sin_addr);
+        } 
+    }
+
+    freeifaddrs(ifap);
+   
+    len = sizeof(cliaddr);  //len is value/resuslt
        
     //Criando arquivo que descreve a socket
     //SOCK_DGRAM é um protocolo baseado em datagrama. Você envia um datagrama e recebe uma resposta e a conexão termina.
@@ -53,41 +62,76 @@ int main(int argc, char *argv[]) {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
-       
-    int len, n;
-   
-    len = sizeof(cliaddr);  //len is value/resuslt
-   
+    // Recebe o json com a mensagem
     n = recvfrom(sockfd, (char *)buffer, MAXLINE, 
-                MSG_WAITALL, ( struct sockaddr *) &cliaddr,
-                &len);
+            MSG_WAITALL, ( struct sockaddr *) &cliaddr,
+            &len);
     buffer[n] = '\0';
-    printf("Client : %s\n", buffer);
+    if (strlen(buffer) > 1) strcpy(ack,"true");
+    //printf("Client : %s\n", buffer);
 
-    message = (char *) malloc(sizeof(char)*50);
-    scanf("%s",message);
-    getchar();
-
-    struct ifaddrs *ifap, *ifa;
-    struct sockaddr_in *sa;
-    char *addr;
-
-    getifaddrs (&ifap);
-    for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
-        if (ifa->ifa_addr && ifa->ifa_addr->sa_family==AF_INET) {
-            sa = (struct sockaddr_in *) ifa->ifa_addr;
-            addr = inet_ntoa(sa->sin_addr);
-        } 
+    // Desmonta o json 
+    char **palavras = (char**) malloc(sizeof(char*)*6);
+    for(int i = 0; i<6; i++){
+        palavras[i] = (char*) malloc(sizeof(char)*50);
     }
 
-    freeifaddrs(ifap);
+    char *palavra = (char*) malloc(sizeof(char)*50);
 
-    snprintf(buffer2, sizeof(buffer2), "{ \"Ip_origem\":  %s \"Ip_destino\": %s \"Porta_origem\": %d  \"Porta_destino\": %d \"Timestamp da mensagem original\": %.24s \"Timestamp da mensagem de resposta\": %.24s \"ACK\": %d }", addr, argv[1], PORT, PORT, ctime(&ticks), ctime(&ticks), ack);
+    int j = 0, qtdPalavras = 0;
+    for(int i = 0; i<strlen(buffer); i++){
+        if(buffer[i] == ':'){
+            i+=2;
+            if(buffer[i] == '"'){
+                i++;
+                while(buffer[i] != '"'){
+                    palavra [j] = buffer[i];
+                    j++;
+                    i++;
+                }
+            }else{
+                while(!(buffer[i] != ',' ^ buffer[i] != '\n')){
+                    palavra[j] = buffer[i];
+                    j++;
+                    i++;
+                }
+            }
+            palavra[j] = '\0';
+            strcpy(palavras[qtdPalavras] ,palavra);
+            j = 0;
+            qtdPalavras++;
+        }
+    }
+
+    printf("[%s] Client: %s\n", palavras[4], palavras[5]);
+
+    // for(int i = 0; i<6; i++){
+    //     puts(palavras[i]);
+    // }
+
+    // Envia o json de recebimento
+    snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\": \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %s, \n\t\"Timestamp da mensagem original\": \"%s\", \n\t\"Timestamp da mensagem de resposta\": \"%.24s\", \n\t\"ACK\": %s \n}", addr, palavras[1], PORT, palavras[2], palavras[4], ctime(&ticks), ack);
 
     sendto(sockfd, (const char *)buffer2, strlen(buffer2), 
         MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
             len);
-    printf("Hello message sent.\n"); 
-       
+
+    // Envia o json com a resposta
+    message = (char *) malloc(sizeof(char)*50);
+    scanf("%s",message);
+    getchar();
+
+    snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\":  \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %s, \n\t\"Timestamp da mensagem original\": \"%.24s\", \n\t\"Timestamp da mensagem de resposta\": \"%.24s\", \n\t\"Mensagem Original\": \"%s\", \n\t\"Mensagem de resposta\": \"%s\" \n}", addr, palavras[1], PORT, palavras[2], palavras[4], ctime(&ticks), palavras[5], message);
+
+    sendto(sockfd, (const char *)buffer2, strlen(buffer2), 
+        MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
+            len);
+    printf("Mensagem enviada.\n");   
+    free(palavra);
+    for(int i = 0; i<6; i++){
+        free(palavras[i]);
+    }
+    free(palavras);
+
     return 0;
 }
