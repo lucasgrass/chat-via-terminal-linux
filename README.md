@@ -18,3 +18,10 @@
   -> Após o servidor receber a mensagem ele mandará para o cliente uma confirmação de que recebeu a mensagem;
   
 -> Enviar uma resposta do servidor ao cliente.
+
+## Linhas com o print do json
+-> Linha 71: json com as informações da mensagem que o cliente enviou para o servidor;
+
+-> Linha 70: json com as informações do recebimento da mensagem no servidor;
+
+-> Linha 193: json com as informações da mensagem que o servidor mandou como resposta para o cliente.
