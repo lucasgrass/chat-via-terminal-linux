@@ -14,5 +14,7 @@
 
 ## Troca de mensagens
 -> Enviar uma mensagem pela máquina do cliente;
+
   -> Após o servidor receber a mensagem ele mandará para o cliente uma confirmação de que recebeu a mensagem;
+  
 -> Enviar uma resposta do servidor ao cliente.
