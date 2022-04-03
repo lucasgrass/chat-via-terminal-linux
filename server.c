@@ -7,7 +7,6 @@
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <json-c/json.h>
 #include <time.h> 
 #include <ifaddrs.h>
 #include <sys/ioctl.h>
@@ -18,14 +17,24 @@
 #define MAXLINE 1024
    
 int main(int argc, char *argv[]) {
-    int sockfd;
-    char buffer[MAXLINE];
-    char buffer2[MAXLINE];
-    char *message;
+    int sockfd, len, n;
+    char buffer[MAXLINE], buffer2[MAXLINE],  *message, *addr;
     time_t ticks;
     bool ack = false;
+    struct sockaddr_in servaddr, cliaddr, *sa;
+    struct ifaddrs *ifap, *ifa;
 
-    struct sockaddr_in servaddr, cliaddr;
+    getifaddrs (&ifap);
+    for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
+        if (ifa->ifa_addr && ifa->ifa_addr->sa_family==AF_INET) {
+            sa = (struct sockaddr_in *) ifa->ifa_addr;
+            addr = inet_ntoa(sa->sin_addr);
+        } 
+    }
+
+    freeifaddrs(ifap);
+   
+    len = sizeof(cliaddr);  //len is value/resuslt
        
     //Criando arquivo que descreve a socket
     //SOCK_DGRAM é um protocolo baseado em datagrama. Você envia um datagrama e recebe uma resposta e a conexão termina.
@@ -53,36 +62,60 @@ int main(int argc, char *argv[]) {
         perror("bind failed");
         exit(EXIT_FAILURE);
     }
-       
-    int len, n;
-   
-    len = sizeof(cliaddr);  //len is value/resuslt
-   
+
     n = recvfrom(sockfd, (char *)buffer, MAXLINE, 
-                MSG_WAITALL, ( struct sockaddr *) &cliaddr,
-                &len);
+            MSG_WAITALL, ( struct sockaddr *) &cliaddr,
+            &len);
     buffer[n] = '\0';
     printf("Client : %s\n", buffer);
+
+    char **palavras = (char**) malloc(sizeof(char*)*6);
+    for(int i = 0; i<6; i++){
+        palavras[i] = (char*) malloc(sizeof(char)*50);
+    }
+
+    char *palavra = (char*) malloc(sizeof(char)*50);
+
+    int j = 0, qtdPalavras = 0;
+    for(int i = 0; i<strlen(buffer); i++){
+        if(buffer[i] == ':'){
+            i+=2;
+            if(buffer[i] == '"'){
+                i++;
+                while(buffer[i] != '"'){
+                    palavra [j] = buffer[i];
+                    j++;
+                    i++;
+                }
+            }else{
+                while(!(buffer[i] != ',' ^ buffer[i] != '\n')){
+                    palavra[j] = buffer[i];
+                    j++;
+                    i++;
+                }
+            }
+            palavra[j] = '\0';
+            strcpy(palavras[qtdPalavras] ,palavra);
+            j = 0;
+            qtdPalavras++;
+        }
+    }
+
+    for(int i = 0; i<6; i++){
+        puts(palavras[i]);
+    }
+
+    snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\": \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %d, \n\t\"Timestamp da mensagem original\": \"%.24s\", \n\t\"Timestamp da mensagem de resposta\": \"%.24s\", \n\t\"ACK\": %d \n}", addr, argv[1], PORT, PORT, ctime(&ticks), ctime(&ticks), ack);
+
+    sendto(sockfd, (const char *)buffer2, strlen(buffer2), 
+        MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
+            len);
 
     message = (char *) malloc(sizeof(char)*50);
     scanf("%s",message);
     getchar();
 
-    struct ifaddrs *ifap, *ifa;
-    struct sockaddr_in *sa;
-    char *addr;
-
-    getifaddrs (&ifap);
-    for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
-        if (ifa->ifa_addr && ifa->ifa_addr->sa_family==AF_INET) {
-            sa = (struct sockaddr_in *) ifa->ifa_addr;
-            addr = inet_ntoa(sa->sin_addr);
-        } 
-    }
-
-    freeifaddrs(ifap);
-
-    snprintf(buffer2, sizeof(buffer2), "{ \"Ip_origem\":  %s \"Ip_destino\": %s \"Porta_origem\": %d  \"Porta_destino\": %d \"Timestamp da mensagem original\": %.24s \"Timestamp da mensagem de resposta\": %.24s \"ACK\": %d }", addr, argv[1], PORT, PORT, ctime(&ticks), ctime(&ticks), ack);
+    snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\":  \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %d, \n\t\"Timestamp da mensagem original\": \"%.24s\", \n\t\"Timestamp da mensagem de resposta\": \"%.24s\", \n\t\"Mensagem Original\": \"tem que fazer\", \n\t\"Mensagem de resposta\": \"%s\" \n}", addr, argv[1], PORT, PORT, ctime(&ticks), ctime(&ticks), message);
 
     sendto(sockfd, (const char *)buffer2, strlen(buffer2), 
         MSG_CONFIRM, (const struct sockaddr *) &cliaddr,

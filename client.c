@@ -1,31 +1,50 @@
 // Client side implementation of UDP client-server model
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
 #include <arpa/inet.h>
 #include <netinet/in.h>
-#include <json-c/json.h>
 #include <time.h> 
 #include <ifaddrs.h>
 #include <sys/ioctl.h>
-
-
+#include <pthread.h>
    
 #define PORT     8080
 #define MAXLINE 1024
    
+bool msgRecieved = false;
+
+struct thread_args {
+    int sockfd; 
+    int *len; 
+    struct sockaddr_in *servaddr;
+};
+
+void waitAck(void *arguments){
+    int n;
+    struct thread_args *args = arguments;
+    char buffer[MAXLINE];
+    n = recvfrom( args->sockfd, (char *)buffer, MAXLINE, 
+                MSG_WAITALL, (struct sockaddr *) args->servaddr,
+                args->len);
+    buffer[n] = '\0';
+    
+    msgRecieved = true;
+    printf("Server : %s\n", buffer);
+}
+
 // Driver code
 int main(int argc, char *argv[]) {
-    int sockfd;
-    char buffer[MAXLINE];
-    char buffer2[MAXLINE];
-    char *message;
+    int sockfd, n, len;
+    char buffer[MAXLINE], buffer2[MAXLINE], *message, *addr;
+    struct sockaddr_in servaddr, *sa;
+    struct ifaddrs *ifap, *ifa;
     time_t ticks; 
-    
-    struct sockaddr_in     servaddr;
+    pthread_t acknowledgement;
 
     // Ip_origem, Ip_destino, Porta_origem, Porta_destino, Timestamp da mensagem, Mensagem 
 
@@ -60,10 +79,6 @@ int main(int argc, char *argv[]) {
     scanf ("%s", message);
     getchar();
 
-    struct ifaddrs *ifap, *ifa;
-    struct sockaddr_in *sa;
-    char *addr;
-
     getifaddrs (&ifap);
     for (ifa = ifap; ifa; ifa = ifa->ifa_next) {
         if (ifa->ifa_addr && ifa->ifa_addr->sa_family==AF_INET) {
@@ -74,23 +89,73 @@ int main(int argc, char *argv[]) {
 
     freeifaddrs(ifap);
 
-    snprintf(buffer2, sizeof(buffer2), "{ \"Ip_origem\":  %s \"Ip_destino\": %s \"Porta_origem\": %d  \"Porta_destino\": %d \"Timestamp da mensagem\": %.24s \"Mensagem\": %s }", addr, argv[1], PORT, PORT, ctime(&ticks), message);
-    
-    int n, len;
+    snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\": \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %d, \n\t\"Timestamp da mensagem\": \"%.24s\", \t\"Mensagem\": \"%s\" \n}", addr, argv[1], PORT, PORT, ctime(&ticks), message);
+
+    char **palavras = (char**) malloc(sizeof(char*)*6);
+    for(int i = 0; i<6; i++){
+        palavras[i] = (char*) malloc(sizeof(char)*50);
+    }
+
+    char *palavra = (char*) malloc(sizeof(char)*50);
+
+    int j = 0, qtdPalavras = 0;
+    for(int i = 0; i<strlen(buffer2); i++){
+        if(buffer2[i] == ':'){
+            i+=2;
+            if(buffer2[i] == '"'){
+                i++;
+                while(buffer2[i] != '"'){
+                    palavra [j] = buffer2[i];
+                    j++;
+                    i++;
+                }
+            }else{
+                while(!(buffer2[i] != ',' ^ buffer2[i] != '\n')){
+                    palavra[j] = buffer2[i];
+                    j++;
+                    i++;
+                }
+            }
+            palavra[j] = '\0';
+            strcpy(palavras[qtdPalavras] ,palavra);
+            j = 0;
+            qtdPalavras++;
+        }
+    }
+
+    for(int i = 0; i<6; i++){
+        puts(palavras[i]);
+    }
+
     printf("Message sent.\n");
 
-    sendto(sockfd, (const char *)buffer2, strlen(buffer2),
+    struct thread_args args;
+    args.sockfd = sockfd;
+    args.len = &len;
+    args.servaddr = &servaddr;
+
+    pthread_create(&acknowledgement, NULL, (void*) waitAck, &args);
+
+    while (!msgRecieved)
+    {
+        sendto(sockfd, (const char *)buffer2, strlen(buffer2),
             MSG_CONFIRM, (const struct sockaddr *) &servaddr, 
             sizeof(servaddr));
+    }
+
+    pthread_join(acknowledgement, NULL);
+    //waitAck(sockfd, &len, &servaddr)
 
     n = recvfrom(sockfd, (char *)buffer, MAXLINE, 
                 MSG_WAITALL, (struct sockaddr *) &servaddr,
                 &len);
-
+                
     buffer[n] = '\0';
     
+    msgRecieved = true;
     printf("Server : %s\n", buffer);
-   
+
     close(sockfd);
     return 0;
 }
+
