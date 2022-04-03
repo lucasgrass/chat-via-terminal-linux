@@ -123,9 +123,9 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    for(int i = 0; i<6; i++){
-        puts(palavras[i]);
-    }
+    // for(int i = 0; i<6; i++){
+    //     puts(palavras[i]);
+    // }
 
     printf("Message sent.\n");
 
@@ -156,6 +156,13 @@ int main(int argc, char *argv[]) {
     printf("Server : %s\n", buffer);
 
     close(sockfd);
+
+    free(palavra);
+    for(int i = 0; i<6; i++){
+        free(palavras[i]);
+    }
+    free(palavras);
+
     return 0;
 }
 

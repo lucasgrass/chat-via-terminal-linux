@@ -68,7 +68,7 @@ int main(int argc, char *argv[]) {
             &len);
     buffer[n] = '\0';
     printf("Client : %s\n", buffer);
-
+    ack = true;
     char **palavras = (char**) malloc(sizeof(char*)*6);
     for(int i = 0; i<6; i++){
         palavras[i] = (char*) malloc(sizeof(char)*50);
@@ -101,11 +101,11 @@ int main(int argc, char *argv[]) {
         }
     }
 
-    for(int i = 0; i<6; i++){
-        puts(palavras[i]);
-    }
+    // for(int i = 0; i<6; i++){
+    //     puts(palavras[i]);
+    // }
 
-    snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\": \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %d, \n\t\"Timestamp da mensagem original\": \"%.24s\", \n\t\"Timestamp da mensagem de resposta\": \"%.24s\", \n\t\"ACK\": %d \n}", addr, argv[1], PORT, PORT, ctime(&ticks), ctime(&ticks), ack);
+    snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\": \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %s, \n\t\"Timestamp da mensagem original\": \"%s\", \n\t\"Timestamp da mensagem de resposta\": \"%.24s\", \n\t\"ACK\": %d \n}", addr, palavras[1], PORT, palavras[2], palavras[4], ctime(&ticks), ack);
 
     sendto(sockfd, (const char *)buffer2, strlen(buffer2), 
         MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
@@ -115,12 +115,18 @@ int main(int argc, char *argv[]) {
     scanf("%s",message);
     getchar();
 
-    snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\":  \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %d, \n\t\"Timestamp da mensagem original\": \"%.24s\", \n\t\"Timestamp da mensagem de resposta\": \"%.24s\", \n\t\"Mensagem Original\": \"tem que fazer\", \n\t\"Mensagem de resposta\": \"%s\" \n}", addr, argv[1], PORT, PORT, ctime(&ticks), ctime(&ticks), message);
+    snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\":  \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %s, \n\t\"Timestamp da mensagem original\": \"%.24s\", \n\t\"Timestamp da mensagem de resposta\": \"%.24s\", \n\t\"Mensagem Original\": \"%s\", \n\t\"Mensagem de resposta\": \"%s\" \n}", addr, palavras[1], PORT, palavras[2], palavras[4], ctime(&ticks), palavras[5], message);
 
     sendto(sockfd, (const char *)buffer2, strlen(buffer2), 
         MSG_CONFIRM, (const struct sockaddr *) &cliaddr,
             len);
     printf("Hello message sent.\n"); 
        
+    free(palavra);
+    for(int i = 0; i<6; i++){
+        free(palavras[i]);
+    }
+    free(palavras);
+
     return 0;
 }
