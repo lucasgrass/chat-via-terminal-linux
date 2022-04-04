@@ -105,9 +105,9 @@ int main(int argc, char *argv[]) {
 
     printf("[%s] Client: %s\n", palavras[4], palavras[5]);
 
-    // for(int i = 0; i<6; i++){
-    //     puts(palavras[i]);
-    // }
+    
+    
+    
 
     // Envia o json de recebimento
     snprintf(buffer2, sizeof(buffer2), "\n{\n\t\"Ip_origem\": \"%s\", \n\t\"Ip_destino\": \"%s\", \n\t\"Porta_origem\": %d,  \n\t\"Porta_destino\": %s, \n\t\"Timestamp da mensagem original\": \"%s\", \n\t\"Timestamp da mensagem de resposta\": \"%.24s\", \n\t\"ACK\": %s \n}", addr, palavras[1], PORT, palavras[2], palavras[4], ctime(&ticks), ack);
